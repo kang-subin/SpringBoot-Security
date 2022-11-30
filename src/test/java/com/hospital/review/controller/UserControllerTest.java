@@ -3,6 +3,8 @@ package com.hospital.review.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hospital.review.domain.dto.UserDto;
 import com.hospital.review.domain.dto.UserJoinRequest;
+
+import com.hospital.review.domain.dto.UserLoginRequest;
 import com.hospital.review.exeption.ErrorCode;
 import com.hospital.review.exeption.HospitalReviewAppException;
 import com.hospital.review.service.UserService;
@@ -12,62 +14,112 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.RequestEntity.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest
 class UserControllerTest {
 
-    @Autowired // Controller 테스트 하기 위해서 사용
+    @Autowired
     MockMvc mockMvc;
 
-    @MockBean // 가짜객체 생성
+    @MockBean
     UserService userService;
 
     @Autowired
-    ObjectMapper objectMapper; // 자바 객체 json 형태로 변경
+    ObjectMapper objectMapper;
 
     @Test
     @DisplayName("회원가입 성공")
     void join_success() throws Exception {
-
         UserJoinRequest userJoinRequest = UserJoinRequest.builder()
-                .userName("subin")
-                .password("1234")
-                .email("subin@naver.com")
+                .userName("수빈")
+                .password("123456")
+                .email("subin@gmail.com")
                 .build();
 
         when(userService.join(any())).thenReturn(mock(UserDto.class));
-        //userService의 join메소드 실행 시 thenThrow 리턴
+
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsBytes(userJoinRequest)))
+                        .content(objectMapper.writeValueAsBytes(userJoinRequest)))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
-
 
     @Test
     @DisplayName("회원가입 실패")
     void join_fail() throws Exception {
         UserJoinRequest userJoinRequest = UserJoinRequest.builder()
-                .userName("subin")
-                .password("1234")
-                .email("subin@naver.com")
+                .userName("수빈")
+                .password("123456")
+                .email("subin@gmail.com")
                 .build();
 
         when(userService.join(any())).thenThrow(new HospitalReviewAppException(ErrorCode.DUPLICATED_USER_NAME, ""));
-        //userService의 join메소드 실행 시 thenThrow 리턴
+
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsBytes(userJoinRequest)))
                 .andDo(print())
-                .andExpect(status().isConflict()); // 409에러
+                .andExpect(status().isConflict());
     }
+
+    @Test
+    @DisplayName("로그인 실패 - id없음")
+    @WithMockUser
+    void login_fail1() throws Exception {
+        UserLoginRequest userLoginRequest = UserLoginRequest.builder()
+                .userName("짭수빈")
+                .password("12345")
+                .build();
+
+        // id, pw를 보내서
+        when(userService.login(any(), any())).thenThrow(new HospitalReviewAppException(ErrorCode.NOT_FOUND, ""));
+
+        // NOT_FOUND를 받으면 잘 만든 것이다
+        mockMvc.perform(post("/api/v1/users/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(userLoginRequest)))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("로그인 실패 - password 불일치")
+    void login_fail2() throws Exception{
+
+
+
+
+
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("로그인 성공")
+    void login_success() throws Exception{
+
+
+
+
+
+    }
+
+
+
 }
+
+
+
+

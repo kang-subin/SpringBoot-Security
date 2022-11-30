@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+jwt:
+  token:
+    secret: hello
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: localhost

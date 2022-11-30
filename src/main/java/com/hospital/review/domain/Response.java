@@ -1,6 +1,7 @@
 package com.hospital.review.domain;
 
 import com.hospital.review.domain.dto.UserJoinResponse;
+import com.hospital.review.domain.dto.UserLoginResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -14,7 +15,7 @@ public class Response <T> {
         return new Response<>(resultCode, null);
     }
 
-    public static <T> Response<T> success(T result) {
+    public static <T> Response<T> suceess(T result) {
         return new Response("SUCCESS", result);
     }
 
