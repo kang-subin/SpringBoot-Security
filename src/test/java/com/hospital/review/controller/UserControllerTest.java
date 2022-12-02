@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -49,6 +50,7 @@ class UserControllerTest {
         when(userService.join(any())).thenReturn(mock(UserDto.class));
 
         mockMvc.perform(post("/api/v1/users/join")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsBytes(userJoinRequest)))
                 .andDo(print())
@@ -64,18 +66,46 @@ class UserControllerTest {
                 .email("subin@gmail.com")
                 .build();
 
-        when(userService.join(any())).thenThrow(new HospitalReviewAppException(ErrorCode.DUPLICATED_USER_NAME, ""));
+        when(userService.join(any()))
+                        .thenThrow(new HospitalReviewAppException(ErrorCode.DUPLICATED_USER_NAME, ""));
 
         mockMvc.perform(post("/api/v1/users/join")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsBytes(userJoinRequest)))
                 .andDo(print())
                 .andExpect(status().isConflict());
     }
 
+
+
     @Test
-    @DisplayName("로그인 실패 - id없음")
+    @DisplayName("로그인 성공")
     @WithMockUser
+    void login_success() throws Exception {
+        UserLoginRequest userLoginRequest = UserLoginRequest.builder()
+                .userName("짭수빈")
+                .password("12345")
+                .build();
+
+        when(userService.login(any(), any())) // username, password 를 받고
+                .thenReturn("token"); // 성공 할 경우 토큰 리턴
+
+
+        mockMvc.perform(post("/api/v1/users/login") // 호출
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(userLoginRequest)))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+
+
+
+    @Test
+    @DisplayName("로그인 실패 - userName 없음")
+    @WithMockUser //
     void login_fail1() throws Exception {
         UserLoginRequest userLoginRequest = UserLoginRequest.builder()
                 .userName("짭수빈")
@@ -83,7 +113,8 @@ class UserControllerTest {
                 .build();
 
         // id, pw를 보내서
-        when(userService.login(any(), any())).thenThrow(new HospitalReviewAppException(ErrorCode.NOT_FOUND, ""));
+        when(userService.login(any(), any()))
+                .thenThrow(new HospitalReviewAppException(ErrorCode.USERNAME_NOT_FOUND, ""));
 
         // NOT_FOUND를 받으면 잘 만든 것이다
         mockMvc.perform(post("/api/v1/users/login")
@@ -94,31 +125,37 @@ class UserControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
     @Test
-    @WithMockUser
     @DisplayName("로그인 실패 - password 불일치")
+    @WithMockUser
     void login_fail2() throws Exception{
 
+        // 요청이 들어왔다고 가정
+        UserLoginRequest userLoginRequest = UserLoginRequest.builder()
+                .userName("짭수빈")
+                .password("12345")
+                .build();
+        // 요청에 따라 서비스의 login 메소드드 실행 시 pw 불일치일 경우 HospitalReviewAppException 발생
+        when(userService.login(any(), any())) // username, password 를 받고
+                .thenThrow(new HospitalReviewAppException(ErrorCode.INVALID_PASSWORD,"")); // 성공 할 경우 토큰 리턴
 
-
-
+        // controller 실행 결과 : controller 가 INVALID_PASSWORD exception을 잘 리턴하는 지 확
+        mockMvc.perform(post("/api/v1/users/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(userLoginRequest))) // 요청 한 json 형태 출력
+                .andExpect(status().isUnauthorized()); // 리턴 된 httpstatus 결과
+    }
 
     }
 
-    @Test
-    @WithMockUser
-    @DisplayName("로그인 성공")
-    void login_success() throws Exception{
 
 
 
 
 
-    }
 
-
-
-}
 
 
 
